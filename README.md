@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>대학생 과제 관리 웹사이트 (Assignment Manager)</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        [v-cloak] { display: none; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans antialiased">
+
+    <div id="auth-section" class="min-h-screen flex items-center justify-center p-4">
+        <div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border border-slate-100">
+            <div class="text-center mb-8">
+                <div class="inline-flex items-center justify-center w-12 h-12 bg-blue-600 text-white rounded-xl mb-3 shadow-md shadow-blue-200">
+                    <i class="fa-solid fa-graduation-cap text-xl"></i>
+                </div>
+                <h1 class="text-2xl font-bold tracking-tight text-slate-900" id="auth-title">Assignment Manager</h1>
+                <p class="text-sm text-slate-500 mt-1" id="auth-subtitle">과제 일정을 한눈에 체계적으로 관리하세요.</p>
+            </div>
+
+            <form id="auth-form" onsubmit="handleAuth(event)" class="space-y-5">
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">아이디</label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                            <i class="fa-solid fa-user"></i>
+                        </span>
+                        <input type="text" id="auth-username" required class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-blue-500 focus:bg-white transition" placeholder="아이디 입력">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">비밀번호</label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                            <i class="fa-solid fa-lock"></i>
+                        </span>
+                        <input type="password" id="auth-password" required class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-blue-500 focus:bg-white transition" placeholder="비밀번호 입력">
+                    </div>
+                </div>
+
+                <button type="submit" id="auth-submit-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 rounded-xl text-sm transition shadow-lg shadow-blue-100 cursor-pointer">
+                    로그인
+                </button>
+            </form>
+
+            <div class="mt-6 text-center text-sm">
+                <button onclick="toggleAuthMode()" id="auth-toggle-btn" class="text-blue-600 hover:underline font-medium cursor-pointer">
+                    계정이 없으신가요? 회원가입하기
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="main-section" class="hidden min-h-screen flex flex-col md:flex-row">
+        
+        <aside class="w-full md:w-64 bg-slate-900 text-slate-300 flex flex-col border-r border-slate-800">
+            <div class="p-5 flex items-center justify-between border-b border-slate-800">
+                <div class="flex items-center gap-2.5 text-white font-bold">
+                    <i class="fa-solid fa-layer-group text-blue-400"></i>
+                    <span>과제 매니저</span>
+                </div>
+                <button onclick="logout()" class="text-xs bg-slate-800 hover:bg-slate-700 hover:text-white px-2.5 py-1.5 rounded-lg transition cursor-pointer" title="로그아웃">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                </button>
+            </div>
+
+            <div class="p-4 border-b border-slate-800">
+                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">과목 추가</label>
+                <form onsubmit="addSubject(event)" class="flex gap-2">
+                    <input type="text" id="new-subject-name" required class="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500" placeholder="과목명 입력">
+                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-xs transition cursor-pointer">
+                        추가
+                    </button>
+                </form>
+            </div>
+
+            <div class="flex-1 overflow-y-auto p-4 space-y-1">
+                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2 px-1">과목 목록</label>
+                <button onclick="filterBySubject('all')" id="subject-all-btn" class="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition cursor-pointer bg-slate-800 text-white">
+                    <span class="flex items-center gap-2">
+                        <i class="fa-solid fa-list-ul text-xs opacity-70"></i> 전체 과제 보기
+                    </span>
+                </button>
+                
+                <div id="sidebar-subject-list" class="space-y-1 pt-1">
+                    </div>
+            </div>
+
+            <div class="p-4 border-t border-slate-800 text-xs text-slate-500 flex items-center gap-2">
+                <i class="fa-solid fa-circle-user text-slate-400"></i>
+                <span id="user-display">사용자</span>님 환영합니다.
+            </div>
+        </aside>
+
+        <main class="flex-1 p-6 md:p-8 max-w-6xl mx-auto w-full space-y-6">
+            
+            <section class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div onclick="filterByTime('today')" class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm cursor-pointer hover:border-red-300 transition group">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">오늘 마감</span>
+                        <span class="w-7 h-7 rounded-lg bg-red-50 flex items-center justify-center text-red-500 group-hover:bg-red-500 group-hover:text-white transition"><i class="fa-solid fa-calendar-day text-xs"></i></span>
+                    </div>
+                    <div class="mt-2 flex items-baseline gap-1">
+                        <span id="widget-today-count" class="text-2xl font-bold text-slate-900">0</span>
+                        <span class="text-xs text-slate-500">개</span>
+                    </div>
+                </div>
+                <div onclick="filterByTime('3days')" class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm cursor-pointer hover:border-amber-300 transition group">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">3일 이내 마감</span>
+                        <span class="w-7 h-7 rounded-lg bg-amber-50 flex items-center justify-center text-amber-500 group-hover:bg-amber-500 group-hover:text-white transition"><i class="fa-solid fa-clock text-xs"></i></span>
+                    </div>
+                    <div class="mt-2 flex items-baseline gap-1">
+                        <span id="widget-upcoming-count" class="text-2xl font-bold text-slate-900">0</span>
+                        <span class="text-xs text-slate-500">개</span>
+                    </div>
+                </div>
+                <div onclick="filterByStatus('incomplete')" class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm cursor-pointer hover:border-blue-300 transition group">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">남은 미완료 과제</span>
+                        <span class="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center text-blue-500 group-hover:bg-blue-500 group-hover:text-white transition"><i class="fa-solid fa-list-check text-xs"></i></span>
+                    </div>
+                    <div class="mt-2 flex items-baseline gap-1">
+                        <span id="widget-remaining-count" class="text-2xl font-bold text-slate-900">0</span>
+                        <span class="text-xs text-slate-500">개</span>
+                    </div>
+                </div>
+            </section>
+
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-2 border-t border-slate-200">
+                <div>
+                    <h2 id="current-view-title" class="text-xl font-bold text-slate-900">전체 과제 목록</h2>
+                    <p class="text-xs text-slate-500 mt-0.5">마감일이 임박한 순서대로 정렬됩니다.</p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button onclick="filterByStatus('all')" id="status-all-btn" class="px-3 py-1.5 bg-slate-200 text-slate-800 text-xs font-medium rounded-lg transition cursor-pointer">전체</button>
+                    <button onclick="filterByStatus('completed')" id="status-comp-btn" class="px-3 py-1.5 bg-white border border-slate-200 text-slate-600 text-xs font-medium rounded-lg hover:bg-slate-50 transition cursor-pointer">완료됨</button>
+                    <button onclick="openAssignmentModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 rounded-lg text-xs font-medium transition shadow-sm flex items-center gap-1.5 cursor-pointer">
+                        <i class="fa-solid fa-plus"></i> 과제 등록
+                    </button>
+                </div>
+            </div>
+
+            <section id="assignment-list" class="space-y-3">
+                </section>
+
+        </main>
+    </div>
+
+    <div id="assignment-modal" class="hidden fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg border border-slate-100 overflow-hidden transform transition-all">
+            <div class="px-6 py-4 bg-slate-50 border-b border-slate-150 flex items-center justify-between">
+                <h3 id="modal-title" class="text-base font-bold text-slate-900">새 과제 등록</h3>
+                <button onclick="closeAssignmentModal()" class="text-slate-400 hover:text-slate-600 transition cursor-pointer">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <form onsubmit="saveAssignment(event)" class="p-6 space-y-4">
+                <input type="hidden" id="modal-task-id">
+                
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">과목 선택 *</label>
+                    <select id="modal-task-subject" required class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-blue-500 focus:bg-white transition">
+                        </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">과제명 *</label>
+                    <input type="text" id="modal-task-title" required class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-blue-500 focus:bg-white transition" placeholder="예: 기말 대체 팀 프로젝트 제출">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">과제 설명</label>
+                    <textarea id="modal-task-desc" rows="3" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-blue-500 focus:bg-white transition resize-none" placeholder="과제 세부 요구사항을 적어주세요."></br></textarea>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">마감일 선택 *</label>
+                    <input type="date" id="modal-task-date" required class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-blue-500 focus:bg-white transition">
+                </div>
+
+                <div class="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                    <button type="button" onclick="closeAssignmentModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium rounded-xl transition cursor-pointer">취소</button>
+                    <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-xl transition shadow-sm cursor-pointer">저장</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+
+    <script>
+        // --- 1. 상태 데이터 모델 정의 ---
+        let currentUser = JSON.parse(sessionStorage.getItem('loggedInUser')) || null;
+        let subjects = JSON.parse(localStorage.getItem('am_subjects')) || [
+            { id: 'sub-1', name: '웹프로그래밍', userId: 'admin' },
+            { id: 'sub-2', name: '소프트웨어공학', userId: 'admin' }
+        ];
+        let assignments = JSON.parse(localStorage.getItem('am_assignments')) || [
+            { id: 'task-1', subjectId: 'sub-1', title: '바이브코딩 맛보기 과제 제출', desc: 'GitHub Pages 링크 제출하기', dueDate: new Date().toISOString().split('T')[0], completed: false, userId: 'admin' }
+        ];
+
+        // 필터 상태 관리
+        let isSignUpMode = false;
+        let currentSubjectFilter = 'all'; // 'all' 또는 subjectId
+        let currentStatusFilter = 'all';  // 'all', 'completed', 'incomplete'
+        let currentTimeFilter = 'all';    // 'all', 'today', '3days'
+
+        // --- 2. 초기 구동 및 인증 관리 ---
+        window.onload = function() {
+            if (currentUser) {
+                showDashboard();
+            } else {
+                showAuth();
+            }
+        };
+
+        function showAuth() {
+            document.getElementById('auth-section').classList.remove('hidden');
+            document.getElementById('main-section').classList.add('hidden');
+            updateAuthDOM();
+        }
+
+        function showDashboard() {
+            document.getElementById('auth-section').classList.add('hidden');
+            document.getElementById('main-section').classList.remove('hidden');
+            document.getElementById('user-display').innerText = currentUser;
+            renderAll();
+        }
+
+        function toggleAuthMode() {
+            isSignUpMode = !isSignUpMode;
+            updateAuthDOM();
+        }
+
+        function updateAuthDOM() {
+            const title = document.getElementById('auth-title');
+            const subtitle = document.getElementById('auth-subtitle');
+            const submitBtn = document.getElementById('auth-submit-btn');
+            const toggleBtn = document.getElementById('auth-toggle-btn');
+            
+            if (isSignUpMode) {
+                title.innerText = "회원가입";
+                subtitle.innerText = "새로운 계정을 만들고 과제를 관리해 보세요.";
+                submitBtn.innerText = "회원가입 완료";
+                toggleBtn.innerText = "이미 계정이 있으신가요? 로그인하기";
+            } else {
+                title.innerText = "Assignment Manager";
+                subtitle.innerText = "과제 일정을 한눈에 체계적으로 관리하세요.";
+                submitBtn.innerText = "로그인";
+                toggleBtn.innerText = "계정이 없으신가요? 회원가입하기";
+            }
+            document.getElementById('auth-form').reset();
+        }
+
+        function handleAuth(e) {
+            e.preventDefault();
+            const user = document.getElementById('auth-username').value.trim();
+            const pass = document.getElementById('auth-password').value.trim();
+            let users = JSON.parse(localStorage.getItem('am_users')) || { 'admin': 'admin123' };
+
+            if (isSignUpMode) {
+                if (users[user]) {
+                    alert('이미 존재하는 아이디입니다.');
+                    return;
+                }
+                users[user] = pass;
+                localStorage.setItem('am_users', JSON.stringify(users));
+                alert('회원가입이 완료되었습니다! 로그인 해주세요.');
+                isSignUpMode = false;
+                updateAuthDOM();
+            } else {
+                if (users[user] && users[user] === pass) {
+                    currentUser = user;
+                    sessionStorage.setItem('loggedInUser', JSON.stringify(currentUser));
+                    showDashboard();
+                } else {
+                    alert('아이디 또는 비밀번호가 일치하지 않습니다.');
+                }
+            }
+        }
+
+        function logout() {
+            currentUser = null;
+            sessionStorage.removeItem('loggedInUser');
+            showAuth();
+        }
+
+
+        // --- 3. 과목 관리 기능 ---
+        function addSubject(e) {
+            e.preventDefault();
+            const input = document.getElementById('new-subject-name');
+            const name = input.value.trim();
+            if(!name) return;
+
+            const newSub = {
+                id: 'sub-' + Date.now(),
+                name: name,
+                userId: currentUser
+            };
+            subjects.push(newSub);
+            saveToLocalStorage();
+            input.value = '';
+            renderAll();
+        }
+
+        function deleteSubject(id, name) {
+            if (confirm(`'${name}' 과목을 삭제하시겠습니까? 관련 과제도 모두 삭제됩니다.`)) {
+                subjects = subjects.filter(s => s.id !== id);
+                assignments = assignments.filter(a => a.subjectId !== id);
+                if (currentSubjectFilter === id) currentSubjectFilter = 'all';
+                saveToLocalStorage();
+                renderAll();
+            }
+        }
+
+        function editSubject(id, oldName) {
+            const newName = prompt('수정할 과목명을 입력하세요:', oldName);
+            if (newName && newName.trim() !== "") {
+                const sub = subjects.find(s => s.id === id);
+                if(sub) {
+                    sub.name = newName.trim();
+                    saveToLocalStorage();
+                    renderAll();
+                }
+            }
+        }
+
+
+        // --- 4. 과제 핵심 핸들러 (등록/수정/삭제/체크) ---
+        function openAssignmentModal(taskId = null) {
+            const modal = document.getElementById('assignment-modal');
+            const select = document.getElementById('modal-task-subject');
+            
+            // 과목 셀렉트 박스 동적 빌드
+            select.innerHTML = '';
+            const mySubs = subjects.filter(s => s.userId === currentUser || s.userId === 'admin');
+            if(mySubs.length === 0) {
+                alert('먼저 왼쪽 사이드바에서 과목을 하나 이상 추가해 주세요.');
+                return;
+            }
+            mySubs.forEach(s => {
+                select.innerHTML += `<option value="${s.id}">${s.name}</option>`;
+            });
+
+            if (taskId) {
+                // 수정 모드 활성화
+                document.getElementById('modal-title').innerText = "과제 정보 수정";
+                const task = assignments.find(a => a.id === taskId);
+                document.getElementById('modal-task-id').value = task.id;
+                document.getElementById('modal-task-subject').value = task.subjectId;
+                document.getElementById('modal-task-title').value = task.title;
+                document.getElementById('modal-task-desc').value = task.desc;
+                document.getElementById('modal-task-date').value = task.dueDate;
+            } else {
+                // 신규 등록 모드
+                document.getElementById('modal-title').innerText = "새 과제 등록";
+                document.getElementById('modal-task-id').value = '';
+                document.getElementById('modal-task-title').value = '';
+                document.getElementById('modal-task-desc').value = '';
+                document.getElementById('modal-task-date').value = new Date().toISOString().split('T')[0];
+            }
+            modal.classList.remove('hidden');
+        }
+
+        function closeAssignmentModal() {
+            document.getElementById('assignment-modal').classList.add('hidden');
+        }
+
+        function saveAssignment(e) {
+            e.preventDefault();
+            const id = document.getElementById('modal-task-id').value;
+            const subjectId = document.getElementById('modal-task-subject').value;
+            const title = document.getElementById('modal-task-title').value.trim();
+            const desc = document.getElementById('modal-task-desc').value.trim();
+            const dueDate = document.getElementById('modal-task-date').value;
+
+            if (id) {
+                // 수정 가공
+                const task = assignments.find(a => a.id === id);
+                if (task) {
+                    task.subjectId = subjectId;
+                    task.title = title;
+                    task.desc = desc;
+                    task.dueDate = dueDate;
+                }
+            } else {
+                // 신규 생성
+                assignments.push({
+                    id: 'task-' + Date.now(),
+                    subjectId,
+                    title,
+                    desc,
+                    dueDate,
+                    completed: false,
+                    userId: currentUser
+                });
+            }
+            saveToLocalStorage();
+            closeAssignmentModal();
+            renderAll();
+        }
+
+        function toggleComplete(id) {
+            const task = assignments.find(a => a.id === id);
+            if(task) {
+                task.completed = !task.completed;
+                saveToLocalStorage();
+                renderAll();
+            }
+        }
+
+        function deleteAssignment(id) {
+            if(confirm('이 과제를 목록에서 완전히 삭제할까요?')) {
+                assignments = assignments.filter(a => a.id !== id);
+                saveToLocalStorage();
+                renderAll();
+            }
+        }
+
+
+        // --- 5. 필터 체인 변경기 ---
+        function filterBySubject(subId) {
+            currentSubjectFilter = subId;
+            currentTimeFilter = 'all'; // 타임 필터 초기화
+            renderAll();
+        }
+
+        function filterByStatus(status) {
+            currentStatusFilter = status;
+            renderAll();
+        }
+
+        function filterByTime(timeRange) {
+            currentTimeFilter = timeRange;
+            currentSubjectFilter = 'all'; // 과목 필터 전체로 유도
+            renderAll();
+        }
+
+
+        // --- 6. 렌더링 엔진 (DOM 동적 구성) ---
+        function renderAll() {
+            renderSidebar();
+            renderWidgets();
+            renderTasks();
+        }
+
+        function renderSidebar() {
+            const listContainer = document.getElementById('sidebar-subject-list');
+            listContainer.innerHTML = '';
+            
+            // 공용 혹은 내 과목만 필터링
+            const mySubs = subjects.filter(s => s.userId === currentUser || s.userId === 'admin');
+            
+            // 사이드바 '전체보기' 활성화 스타일링
+            const allBtn = document.getElementById('subject-all-btn');
+            if(currentSubjectFilter === 'all' && currentTimeFilter === 'all') {
+                allBtn.className = "w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition bg-slate-800 text-white";
+            } else {
+                allBtn.className = "w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition text-slate-400 hover:bg-slate-800/50 hover:text-slate-200";
+            }
+
+            mySubs.forEach(sub => {
+                const isSelected = (currentSubjectFilter === sub.id && currentTimeFilter === 'all');
+                const activeClass = isSelected ? 'bg-slate-800 text-white' : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200';
+                
+                listContainer.innerHTML += `
+                    <div class="group/item w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-sm font-medium transition ${activeClass}">
+                        <button onclick="filterBySubject('${sub.id}')" class="flex-1 text-left truncate py-0.5 cursor-pointer">
+                            # ${sub.name}
+                        </button>
+                        <div class="opacity-0 group-hover/item:opacity-100 flex gap-1 transition">
+                            <button onclick="editSubject('${sub.id}', '${sub.name}')" class="text-slate-500 hover:text-slate-300 p-0.5" title="수정"><i class="fa-solid fa-pen text-2xs"></i></button>
+                            <button onclick="deleteSubject('${sub.id}', '${sub.name}')" class="text-slate-500 hover:text-red-400 p-0.5" title="삭제"><i class="fa-solid fa-trash text-2xs"></i></button>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function renderWidgets() {
+            const todayStr = new Date().toISOString().split('T')[0];
+            const targetDate = new Date();
+            targetDate.setDate(targetDate.getDate() + 3);
+            const threeDaysOutStr = targetDate.toISOString().split('T')[0];
+
+            const myTasks = assignments.filter(a => a.userId === currentUser || a.userId === 'admin');
+            
+            const todayCount = myTasks.filter(a => a.dueDate === todayStr && !a.completed).length;
+            const upcomingCount = myTasks.filter(a => a.dueDate >= todayStr && a.dueDate <= threeDaysOutStr && !a.completed).length;
+            const remainingCount = myTasks.filter(a => !a.completed).length;
+
+            document.getElementById('widget-today-count').innerText = todayCount;
+            document.getElementById('widget-upcoming-count').innerText = upcomingCount;
+            document.getElementById('widget-remaining-count').innerText = remainingCount;
+        }
+
+        function renderTasks() {
+            const container = document.getElementById('assignment-list');
+            container.innerHTML = '';
+
+            // 타이틀 텍스트 동적 분기
+            let viewTitle = "전체 과제 목록";
+            if (currentSubjectFilter !== 'all') {
+                const sub = subjects.find(s => s.id === currentSubjectFilter);
+                if(sub) viewTitle = `${sub.name} 과제 목록`;
+            } else if (currentTimeFilter === 'today') {
+                viewTitle = "오늘 마감 과제";
+            } else if (currentTimeFilter === '3days') {
+                viewTitle = "3일 이내 마감 과제";
+            }
+            document.getElementById('current-view-title').innerText = viewTitle;
+
+            // 정렬 버튼 액티브 효과 스타일링
+            document.getElementById('status-all-btn').className = currentStatusFilter === 'all' ? "px-3 py-1.5 bg-slate-800 text-white text-xs font-medium rounded-lg transition" : "px-3 py-1.5 bg-white border border-slate-200 text-slate-600 text-xs font-medium rounded-lg hover:bg-slate-50 transition";
+            document.getElementById('status-comp-btn').className = currentStatusFilter === 'completed' ? "px-3 py-1.5 bg-slate-800 text-white text-xs font-medium rounded-lg transition" : "px-3 py-1.5 bg-white border border-slate-200 text-slate-600 text-xs font-medium rounded-lg hover:bg-slate-50 transition";
+
+            // 1차 바인딩 필터링
+            let filtered = assignments.filter(a => a.userId === currentUser || a.userId === 'admin');
+
+            // 과목 필터 적용
+            if(currentSubjectFilter !== 'all') {
+                filtered = filtered.filter(a => a.subjectId === currentSubjectFilter);
+            }
+
+            // 완료 유무 상태 필터 적용
+            if(currentStatusFilter === 'completed') {
+                filtered = filtered.filter(a => a.completed);
+            } else if (currentStatusFilter === 'incomplete') {
+                filtered = filtered.filter(a => !a.completed);
+            }
+
+            // 기간 필터 적용
+            const todayStr = new Date().toISOString().split('T')[0];
+            if(currentTimeFilter === 'today') {
+                filtered = filtered.filter(a => a.dueDate === todayStr);
+            } else if(currentTimeFilter === '3days') {
+                const targetDate = new Date();
+                targetDate.setDate(targetDate.getDate() + 3);
+                const maxDateStr = targetDate.toISOString().split('T')[0];
+                filtered = filtered.filter(a => a.dueDate >= todayStr && a.dueDate <= maxDateStr);
+            }
+
+            // 마감일 기준 오름차순 연산 정렬 기본 부여
+            filtered.sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
+
+            if(filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-12 bg-white rounded-xl border border-dashed border-slate-200 text-slate-400 text-sm">
+                        <i class="fa-regular fa-folder-open text-2xl mb-2 block text-slate-300"></i>
+                        해당되는 조건의 과제가 없습니다.
+                    </div>
+                `;
+                return;
+            }
+
+            filtered.forEach(task => {
+                const subObj = subjects.find(s => s.id === task.subjectId);
+                const subName = subObj ? subObj.name : '미지정 과목';
+                
+                // 마감일 디데이 일수 계산기
+                const today = new Date(todayStr);
+                const due = new Date(task.dueDate);
+                const diffTime = due - today;
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                
+                let dDayBadge = '';
+                if(task.completed) {
+                    dDayBadge = `<span class="px-2 py-0.5 bg-slate-100 text-slate-500 rounded text-2xs font-medium">완료됨</span>`;
+                } else if (diffDays === 0) {
+                    dDayBadge = `<span class="px-2 py-0.5 bg-red-500 text-white rounded text-2xs font-bold animate-pulse">D-DAY</span>`;
+                } else if (diffDays > 0) {
+                    dDayBadge = `<span class="px-2 py-0.5 bg-amber-100 text-amber-800 rounded text-2xs font-semibold">D-${diffDays}</span>`;
+                } else {
+                    dDayBadge = `<span class="px-2 py-0.5 bg-rose-100 text-rose-700 rounded text-2xs font-medium">기한 지남</span>`;
+                }
+
+                container.innerHTML += `
+                    <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs hover:shadow-md transition flex items-start gap-3 ${task.completed ? 'opacity-65' : ''}">
+                        <button onclick="toggleComplete('${task.id}')" class="mt-0.5 text-lg cursor-pointer ${task.completed ? 'text-emerald-500' : 'text-slate-300 hover:text-slate-400'}" title="완료 체크토글">
+                            <i class="${task.completed ? 'fa-solid fa-circle-check' : 'fa-regular fa-circle'}"></i>
+                        </button>
+                        
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <span class="text-xs font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md">${subName}</span>
+                                ${dDayBadge}
+                                <span class="text-xs text-slate-400"><i class="fa-regular fa-calendar text-3xs mr-1"></i>${task.dueDate} 마감</span>
+                            </div>
+                            <h4 class="text-sm font-bold mt-1 text-slate-900 ${task.completed ? 'line-through text-slate-400' : ''}">${task.title}</h4>
+                            ${task.desc ? `<p class="text-xs text-slate-500 mt-1 whitespace-pre-line">${task.desc}</p>` : ''}
+                        </div>
+
+                        <div class="flex gap-1.5 self-center">
+                            <button onclick="openAssignmentModal('${task.id}')" class="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-lg transition cursor-pointer" title="수정"><i class="fa-solid fa-pen text-xs"></i></button>
+                            <button onclick="deleteAssignment('${task.id}')" class="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition cursor-pointer" title="삭제"><i class="fa-solid fa-trash text-xs"></i></button>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function saveToLocalStorage() {
+            localStorage.setItem('am_subjects', JSON.stringify(subjects));
+            localStorage.setItem('am_assignments', JSON.stringify(assignments));
+        }
+    </script>
+</body>
+</html>
